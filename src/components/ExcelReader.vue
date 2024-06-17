@@ -10,7 +10,11 @@
         </thead>
         <tbody>
           <tr v-for="(row, rowIndex) in combinedData" :key="rowIndex">
-            <td v-for="(cell, cellIndex) in row" :key="cellIndex">
+            <td
+              v-for="(cell, cellIndex) in row"
+              :key="cellIndex"
+              :class="{'highlight': isTeamHeaderAndEmptyCell(headers[cellIndex], cell)}"
+            >
               <textarea
                 v-model="combinedData[rowIndex][cellIndex]"
                 rows="1"
@@ -18,6 +22,9 @@
                 @mousedown.stop
                 @mousemove.stop
               ></textarea>
+              <div v-if="isTeamHeaderAndEmptyCell(headers[cellIndex], cell)" class="error-message">
+                null값을 입력할 수 없습니다
+              </div>
             </td>
           </tr>
         </tbody>
@@ -29,14 +36,13 @@
 
 <script>
 import * as XLSX from "xlsx";
-//import axios from "axios"; // axios import
 
 export default {
   data() {
     return {
       headers: [],
       combinedData: [],
-      originalWorkbook: null,
+    //  originalWorkbook: null,
     };
   },
   methods: {
@@ -95,10 +101,32 @@ export default {
       });
     },
     sendDataToBackend(jsonData) {
+       // Check for empty cells in 'Team' header and prevent sending if found
+      let hasEmptyCells = false;
+      this.combinedData.forEach(row => {
+        row.forEach((cell, index) => {
+          if (this.isTeamHeaderAndEmptyCell(this.headers[index], cell)) {
+            hasEmptyCells = true;
+            console.log("ddddd");
+          }
+        });
+      });
 
-          console.log("Data successfully saved to backend:", jsonData);
-          // Handle success response
+      if (hasEmptyCells) {
+        console.error("Cannot save: Team 열에 비어 있는 셀이 있습니다.");
+        console.log(hasEmptyCells);
+        //return;
+      } else {
+        console.log(jsonData);
+        console.log(hasEmptyCells);
+      }
 
+      // Send JSON data to backend
+      //this.sendDataToBackend(jsonData);
+     
+    },
+    isTeamHeaderAndEmptyCell(header, cell) {
+      return header === 'Team' && (!cell || cell.trim() === '');
     },
   },
 };
@@ -119,13 +147,13 @@ export default {
   vertical-align: top;
   word-wrap: break-word;
   white-space: pre-wrap;
-  position: relative; /* Ensure positioning for resizable handle */
-  overflow: hidden; /* Prevent overflow */
+  position: relative;
+  overflow: hidden;
 }
 
 textarea {
-  width: calc(100% - 16px); /* Adjust for padding */
-  height: calc(100% - 16px); /* Adjust for padding */
+  width: calc(100%);
+  height: calc(100%);
   border: none;
   outline: none;
   padding: 8px;
@@ -133,5 +161,16 @@ textarea {
   resize: none;
   overflow: auto;
   white-space: pre-wrap;
+}
+
+.highlight {
+  position: relative;
+}
+
+.error-message {
+  color: red;
+  font-size: 12px;
+  margin-top: 4px;
+  font-weight: bold;
 }
 </style>
